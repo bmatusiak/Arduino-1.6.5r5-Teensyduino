@@ -83,6 +83,8 @@ public class PdeKeywords {
   public void reload() {
     try {
       parseKeywordsTxt(new File(BaseNoGui.getContentFile("lib"), "keywords.txt"));
+      File teensykeywords = new File(BaseNoGui.getContentFile("lib"), "keywords_teensy.txt");
+      if (teensykeywords.exists()) parseKeywordsTxt(teensykeywords);
       for (ContributedLibrary lib : Base.getLibraries()) {
         File keywords = new File(lib.getInstalledFolder(), "keywords.txt");
         if (keywords.exists()) {

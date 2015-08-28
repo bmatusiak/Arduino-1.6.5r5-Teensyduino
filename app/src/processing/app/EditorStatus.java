@@ -465,6 +465,7 @@ public class EditorStatus extends JPanel /*implements ActionListener*/ {
         public void actionPerformed(ActionEvent e) {
           String message = "";
           message += _("Arduino: ") + BaseNoGui.VERSION_NAME_LONG + " (" + System.getProperty("os.name") + "), ";
+          message += "TD: " + BaseNoGui.teensyduino_version + ", ";
           message += _("Board: ") + "\"" + BaseNoGui.getBoardPreferences().get("name") + "\"\n\n";
           message += editor.console.consoleTextPane.getText().trim();
           if ((PreferencesData.getBoolean("build.verbose")) == false) {

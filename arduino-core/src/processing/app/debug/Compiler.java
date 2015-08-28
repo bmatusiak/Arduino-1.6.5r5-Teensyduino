@@ -281,7 +281,7 @@ public class Compiler implements MessageConsumer {
         String files[] = tempBuildFolder.list();
         if (files != null) {
           for (String file : files) {
-            if (file.endsWith(".c") || file.endsWith(".cpp") || file.endsWith(".s")) {
+            if (file.endsWith(".c") || file.endsWith(".cpp") || file.endsWith(".S")) {
               File deleteMe = new File(tempBuildFolder, file);
               if (!deleteMe.delete()) {
                 System.err.println("Could not delete " + deleteMe);
@@ -377,7 +377,7 @@ public class Compiler implements MessageConsumer {
       if (verbose) {
         String legacy = "";
         if (lib instanceof LegacyUserLibrary)
-          legacy = "(legacy)";
+          legacy = "(1.0.x format)";
         System.out.println(I18n
             .format(_("Using library {0} in folder: {1} {2}"), lib.getName(),
                     lib.getInstalledFolder(), legacy));
@@ -436,6 +436,10 @@ public class Compiler implements MessageConsumer {
     // 4. link it all together into the .elf file
     progressListener.progress(50);
     compileLink();
+    if (prefs.get("build.elfpatch") != null) {
+      System.out.println("ELF Patch Step");
+      runRecipe("recipe.elfpatch.pattern");
+    }
 
     runActions("hooks.linking.postlink", prefs);
 
@@ -604,8 +608,11 @@ public class Compiler implements MessageConsumer {
 
     for (File file : sSources) {
       File objectFile = new File(outputPath, file.getName() + ".o");
+      File dependFile = new File(outputPath, file.getName() + ".d");
       objectPaths.add(objectFile);
       String[] cmd = getCommandCompilerByRecipe(includeFolders, file, objectFile, "recipe.S.o.pattern");
+      if (isAlreadyCompiled(file, objectFile, dependFile, prefs))
+        continue;
       execAsynchronously(cmd);
     }
  		
@@ -797,6 +804,8 @@ public class Compiler implements MessageConsumer {
   public void message(String s) {
     int i;
 
+    if (BaseNoGui.isTeensyduino()) { message_Teensy(s); return; }
+
     // remove the build path so people only see the filename
     // can't use replaceAll() because the path may have characters in it which
     // have meaning in a regular expression.
@@ -909,6 +918,70 @@ public class Compiler implements MessageConsumer {
     }
 		
     System.err.print(s);
+  }
+
+  private void message_Teensy(String s) {
+    s = s.trim();
+    //System.out.println("Original message: " + s);
+    String advice = null;
+    String[] pieces = PApplet.match(s, "(\\w+\\.\\w+):(\\d+):\\d+:\\s*error:\\s*(.+)");
+    if (pieces != null) {
+      if (!sketchIsCompiled) {
+        // Place errors when compiling the sketch, but never while compiling libraries
+        // or the core.  The user's sketch might contain the same filename!
+        RunnerException e;
+        e = placeException(pieces[3], pieces[1], PApplet.parseInt(pieces[2]) - 1);
+        if (e != null) {
+          if (!verbose) {
+            SketchCode code = sketch.getCode(e.getCodeIndex());
+            String fileName = (code.isExtension("ino") || code.isExtension("pde")) ?
+              code.getPrettyName() : code.getFileName();
+            int lineNum = e.getCodeLine() + 1;
+            s = fileName + ":" + lineNum + ": error: " + pieces[3];
+            //System.out.println("friendly message: " + s);
+          }
+          e.hideStackTrace();
+          exception = e;
+        }
+        advice = message_advice_Teensy(pieces[3].trim());
+      }
+    }
+    System.err.print(s + "\n");
+    if (advice != null) System.err.print(advice + "\n");
+  }
+
+  private String message_advice_Teensy(String s) {
+    if (s.equals("'Keyboard' was not declared in this scope")) {
+      return "To make a USB Keyboard, use the Tools > USB Type menu";
+    }
+    if (s.equals("'Mouse' was not declared in this scope")) {
+      return "To make a USB Mouse, use the Tools > USB Type menu";
+    }
+    if (s.equals("'Joystick' was not declared in this scope")) {
+      return "To make a USB Joystick, use the Tools > USB Type menu";
+    }
+    if (s.equals("'Disk' was not declared in this scope")) {
+      return "To make a USB Disk, use the Tools > USB Type menu";
+    }
+    if (s.equals("'usbMIDI' was not declared in this scope")) {
+      return "To make a USB MIDI device, use the Tools > USB Type menu";
+    }
+    if (s.equals("'RawHID' was not declared in this scope")) {
+      return "To make a USB RawHID device, use the Tools > USB Type menu";
+    }
+    if (s.equals("'FlightSimCommand' was not declared in this scope")) {
+      return "To make a Flight Simulator device, use the Tools > USB Type menu";
+    }
+    if (s.equals("'FlightSimInteger' was not declared in this scope")) {
+      return "To make a Flight Simulator device, use the Tools > USB Type menu";
+    }
+    if (s.equals("'FlightSimFloat' was not declared in this scope")) {
+      return "To make a Flight Simulator device, use the Tools > USB Type menu";
+    }
+    if (s.equals("'FlightSim' was not declared in this scope")) {
+      return "To make a Flight Simulator device, use the Tools > USB Type menu";
+    }
+    return null;
   }
 
   private String[] getCommandCompilerByRecipe(List<File> includeFolders, File sourceFile, File objectFile, String recipe) throws PreferencesMapException, RunnerException {
@@ -1196,6 +1269,22 @@ public class Compiler implements MessageConsumer {
     } catch (Exception e) {
       throw new RunnerException(e);
     }
+
+    if (prefs.containsKey("recipe.output.tmp_file2") && prefs.containsKey("recipe.output.save_file2")) {
+      try {
+        String compiledSketch = prefs.getOrExcept("recipe.output.tmp_file2");
+        compiledSketch = StringReplacer.replaceFromMapping(compiledSketch, dict);
+        String copyOfCompiledSketch = prefs.getOrExcept("recipe.output.save_file2");
+        copyOfCompiledSketch = StringReplacer.replaceFromMapping(copyOfCompiledSketch, dict);
+
+        File compiledSketchFile = new File(prefs.get("build.path"), compiledSketch);
+        File copyOfCompiledSketchFile = new File(sketch.getFolder(), copyOfCompiledSketch);
+
+        FileUtils.copyFile(compiledSketchFile, copyOfCompiledSketchFile);
+      } catch (Exception e) {
+        throw new RunnerException(e);
+      }
+    }
   }
   
 
@@ -1317,6 +1406,10 @@ public class Compiler implements MessageConsumer {
         // shtuff so that unicode bunk is properly handled
         String filename = sc.getFileName(); //code[i].name + ".java";
         try {
+          if (filename.endsWith(".s")) {
+            // assembly files must be named with capital ".S"
+            filename = filename.substring(0, filename.length()-1) + "S";
+          }
           BaseNoGui.saveFile(sc.getProgram(), new File(buildPath, filename));
         } catch (IOException e) {
           e.printStackTrace();

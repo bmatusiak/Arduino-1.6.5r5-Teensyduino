@@ -1604,6 +1604,43 @@ public class Base {
     return ifound;
   }
 
+  private void warnExampleDuplicateLibrary(File file) {
+    if (!BaseNoGui.isTeensyduino()) return;
+    File parentdir = file;
+    do {
+      parentdir = parentdir.getParentFile();
+      if (parentdir == null) return;
+    } while (!parentdir.getName().equals("examples"));
+    parentdir = parentdir.getParentFile();
+    if (parentdir == null) return;
+    //System.out.println("parent dir " + parentdir.getPath());
+    UserLibrary lib = null;
+    for (UserLibrary l : BaseNoGui.librariesIndexer.getInstalledLibraries()) {
+      if (parentdir.equals(l.getInstalledFolder())) {
+        //System.out.println("found library " + l.getName());
+        lib = l;
+        break;
+      }
+    }
+    if (lib == null) return;
+    String name = lib.getName();
+    if (name == null) return;
+    boolean first = true;
+    for (UserLibrary dup : BaseNoGui.librariesIndexer.getInstalledLibrariesWithDuplicates()) {
+      if (name.equals(dup.getName())) {
+        File dupdir = dup.getInstalledFolder();
+        if (!parentdir.equals(dupdir)) {
+          if (first) {
+            System.out.println(I18n.format(_("Duplicate \"{0}\" libraries:"), name));
+            System.out.println(I18n.format(_("      using: {0}"), parentdir.getPath()));
+            first = false;
+          }
+          System.out.println(I18n.format(_("  not using: {0}"), dupdir.getPath()));
+        }
+      }
+    }
+  }
+
   private boolean addSketchesSubmenu(JMenu menu, UserLibrary lib,
                                      boolean replaceExisting)
           throws IOException {
@@ -1624,6 +1661,7 @@ public class Base {
             replace = !replace;
           }
           if (replace) {
+            warnExampleDuplicateLibrary(file);
             handleOpenReplace(file);
           } else {
             try {

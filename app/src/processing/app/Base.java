@@ -1660,8 +1660,8 @@ public class Base {
           if ((e.getModifiers() & ActionEvent.SHIFT_MASK) != 0) {
             replace = !replace;
           }
+          warnExampleDuplicateLibrary(file);
           if (replace) {
-            warnExampleDuplicateLibrary(file);
             handleOpenReplace(file);
           } else {
             try {

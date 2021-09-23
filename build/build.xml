@@ -182,12 +182,12 @@
       </fileset>
     </copy>
     <antcall target="unzip">
-      <param name="archive_file" value="Firmata-2.4.3.zip" />
-      <param name="archive_url" value="https://github.com/arduino-libraries/Firmata/archive/v2.4.3.zip" />
+      <param name="archive_file" value="Arduino-1.6.x-Firmata-2.4.3.zip" />
+      <param name="archive_url" value="https://github.com/firmata/arduino/releases/download/v2.4.3/Arduino-1.6.x-Firmata-2.4.3.zip" />
       <param name="final_folder" value="${target.path}/libraries/Firmata-2.4.3" />
       <param name="dest_folder" value="${target.path}/libraries" />
     </antcall>
-    <move file="${target.path}/libraries/Firmata-2.4.3" tofile="${target.path}/libraries/Firmata" />
+    <!-- <move file="${target.path}/libraries/Firmata-2.4.3" tofile="${target.path}/libraries/Firmata" /> -->
     <antcall target="unzip">
       <param name="archive_file" value="Temboo-1.1.2.zip" />
       <param name="archive_url" value="https://github.com/temboo/Temboo/archive/1.1.2.zip" />
@@ -622,7 +622,7 @@
   </target>
 
   <target name="linux-build" depends="revision-check, linux-checkos, subprojects-build" description="Build linux version">
-<!--
+
     <mkdir dir="linux/work" />
     <mkdir dir="linux/work/${staging_hardware_folder}" />
 
@@ -659,7 +659,7 @@
     </antcall>
     <copy file="linux/libastylej/libastylej${arch-bits}.so" tofile="linux/work/lib/libastylej.so" />
     <chmod perm="755" file="linux/work/lib/libastylej.so" />
--->
+    
   </target>
 
   <target name="linux32-build" depends="linux-build" description="Build linux (32-bit) version">
@@ -681,7 +681,7 @@
   </target>
 
   <target name="linux64-build" depends="linux-build" description="Build linux (64-bit) version">
-<!--
+
     <antcall target="linux-jvm-${linux-bundle-jvm-task}">
       <param name="JVM" value="${LINUX64_BUNDLED_JVM}"/>
     </antcall>
@@ -695,7 +695,7 @@
     </antcall>
 
     <antcall target="package-library-index-json-bundle"/>
--->
+
   </target>
 
   <target name="linux-jvm-noop"/>

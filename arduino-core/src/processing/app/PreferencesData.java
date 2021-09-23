@@ -28,7 +28,7 @@ public class PreferencesData {
   static PreferencesMap defaults;
   static PreferencesMap prefs = new PreferencesMap();
   static File preferencesFile;
-  static boolean doSave = true;
+  static boolean doSave = false;
 
 
   static public void init(File file) {

@@ -8,5 +8,5 @@ ubuntu 20.04
 
 `cd build`
 
-`and dist`
+`ant dist`
 
